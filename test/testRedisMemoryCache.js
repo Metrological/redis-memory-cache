@@ -439,6 +439,27 @@ describe('redis-memory-cache module', function() {
             it('should produce correct result on E1 (cached:key1)', function(cb) {
                 shouldGetJson(mcRedis1, getKey(["cached", "key1"]), obj1, cb);
             });
+            it('should cause 1 cache hit on E1', function(cb) {
+                shouldCacheStatus(mcRedis1, 1, 0, 0, true, cb);
+            });
+            it('should not be affected by changing the local object', function(cb) {
+                mcRedis1.get(getKey(["cached", "key1"]), function(err, res) {
+                    if (err) {
+                        return cb(err);
+                    }
+
+                    res.test = 2;
+
+                    shouldGetJson(mcRedis1, getKey(["cached", "key1"]), obj1, function(err) {
+                        if (err) {
+                            return cb(err);
+                        }
+
+                        mcRedis1.resetCacheStats();
+                        cb();
+                    });
+                }, true);
+            });
             it('should produce correct result on E1 (cached:key2)', function(cb) {
                 shouldGetJson(mcRedis1, getKey(["cached", "key2"]), obj2, cb);
             });
@@ -448,8 +469,8 @@ describe('redis-memory-cache module', function() {
             it('should produce correct result on E1 (not-cached:key2)', function(cb) {
                 shouldGetJson(mcRedis1, getKey(["not-cached", "key2"]), obj4, cb);
             });
-            it('should cause 1 cache hit and 1 cache miss on E1', function(cb) {
-                shouldCacheStatus(mcRedis1, 2, 0, 0, true, cb);
+            it('should cause 1 cache hit on E1', function(cb) {
+                shouldCacheStatus(mcRedis1, 1, 0, 0, true, cb);
             });
             it('should produce correct result (mget) on E1', function(cb) {
                 var expected = {};
