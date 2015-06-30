@@ -1,0 +1,27 @@
+{
+  "author": "Metrological",
+  "private": false,
+  "name": "redis-memory-cache",
+  "description": "Local memory caching proxy for redis client.",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Metrological/redis-memory-cache"
+  },
+  "main": "./lib/redis-memory-cache",
+  "keywords": [
+    "redis",
+    "cache",
+    "memory",
+    "local"
+  ],
+  "dependencies": {
+    "lodash": "*"
+  },
+  "devDependencies": {
+    "redis": "*",
+    "mocha": "*",
+    "should": "*",
+    "async": "*"
+  }
+}
