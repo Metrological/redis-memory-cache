@@ -92,5 +92,22 @@ rmcClient.get('key1:key2:something', function(err, res) {console.log(JSON.string
 When adding true after the callback argument in GET or MGET operations, the string is automatically parsed to a json
 object.
 
-Subsequent calls do not have to parse the cached result again and return the json object from memory. Take care that
-this json object is returned by reference, so it should be used in a read-only way!
+Subsequent calls do not have to parse the cached result again and return the json object from memory. By default the
+object is cloned so that it can be changed without affecting the cache. If you want to prevent this and improve
+performance, add another true parameter to prevent cloning. Take care that this json object is then returned by
+reference, so it should be used in a read-only way! Example:
+
+```javascript
+rmcClient.set('key1:key2:something', JSON.stringify({test: 1}));
+console.log()
+rmcClient.get('key1:key2:something', function(err, res) {
+	console.log(res.test); //1
+	res.test = 2;
+	console.log(res.test); //2
+
+	rmcClient.get('key1:key2:something', function(err, res) {
+		console.log(res.test); //2
+	}, true, true);
+}, true, true);
+```
+

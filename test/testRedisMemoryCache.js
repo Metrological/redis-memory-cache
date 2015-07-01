@@ -447,18 +447,53 @@ describe('redis-memory-cache module', function() {
                     if (err) {
                         return cb(err);
                     }
-
                     res.test = 2;
-
                     shouldGetJson(mcRedis1, getKey(["cached", "key1"]), obj1, function(err) {
                         if (err) {
                             return cb(err);
                         }
-
                         mcRedis1.resetCacheStats();
                         cb();
                     });
                 }, true);
+            });
+            it('should affect the local cached object when setting the noClone flag', function(cb) {
+                var key = getKey(["cached", "key2"]);
+                mcRedis1.get(key, function(err, res) {
+                    if (err) {
+                        return cb(err);
+                    }
+                    res.test = 2;
+                    mcRedis1.get(key, function(err, res2) {
+                        if (err) {
+                            return cb(err);
+                        }
+                        should(res === res2).equal(true);
+                        should(_.isEqual(res, res2)).equal(true);
+
+                        res.test = obj1.test;
+                        cb();
+                    }, true, true);
+                }, true, true);
+            });
+            it('should affect the local cached object when setting the noClone flag (mget)', function(cb) {
+                var key = getKey(["cached", "key2"]);
+                mcRedis1.get(key, function(err, res) {
+                    if (err) {
+                        return cb(err);
+                    }
+                    res.test = 2;
+                    mcRedis1.mget([key], function(err, res3) {
+                        if (err) {
+                            return cb(err);
+                        }
+                        should(res === res3[0]).equal(true);
+                        should(res.length === res3[0].length).equal(true);
+                        res.test = obj1.test;
+                        mcRedis1.resetCacheStats();
+                        cb();
+                    }, true, true);
+                }, true, true);
             });
             it('should produce correct result on E1 (cached:key2)', function(cb) {
                 shouldGetJson(mcRedis1, getKey(["cached", "key2"]), obj2, cb);
@@ -496,6 +531,44 @@ describe('redis-memory-cache module', function() {
                 obj3 = {"qwerty":123};
                 mcRedis1.set(getKey(["not-cached", "key1"]), JSON.stringify(obj3), cb);
             });
+            it('should affect the local cached object when setting the noClone flag, when no cache available', function(cb) {
+                var key = getKey(["cached", "key2"]);
+                mcRedis1.get(key, function(err, res) {
+                    if (err) {
+                        return cb(err);
+                    }
+                    res.push(4);
+                    mcRedis1.get(key, function(err, res2) {
+                        if (err) {
+                            return cb(err);
+                        }
+                        should(res === res2).equal(true);
+                        should(res.length === res2.length).equal(true);
+
+                        res.pop();
+                        cb();
+                    }, true, true);
+                }, true, true);
+            });
+            it('should affect the local cached object when setting the noClone flag, when no cache available (mget)', function(cb) {
+                var key = getKey(["cached", "key2"]);
+                mcRedis1.get(key, function(err, res) {
+                    if (err) {
+                        return cb(err);
+                    }
+                    res.push(4);
+                    mcRedis1.mget([key], function(err, res3) {
+                        if (err) {
+                            return cb(err);
+                        }
+                        should(res === res3[0]).equal(true);
+                        should(res.length === res3[0].length).equal(true);
+                        res.pop();
+
+                        cb();
+                    }, true, true);
+                }, true, true);
+            });
             it('should produce corrected result (mget) on E1', function(cb) {
                 var expected = {};
                 expected[getKey(["cached", "key1"])] = obj1;
@@ -504,8 +577,8 @@ describe('redis-memory-cache module', function() {
                 expected[getKey(["not-cached", "key2"])] = obj4;
                 shouldMgetJson(mcRedis1, expected, cb);
             });
-            it('should cause 1 cache hit and 1 cache miss on E1', function(cb) {
-                shouldCacheStatus(mcRedis1, 1, 1, 0, true, cb);
+            it('should cause 5 cache hits and 1 cache miss on E1', function(cb) {
+                shouldCacheStatus(mcRedis1, 5, 1, 0, true, cb);
             });
 
             // Deletion.
@@ -534,8 +607,51 @@ describe('redis-memory-cache module', function() {
             it('should cause dirty key on E2', function(cb) {
                 shouldCacheStatus(mcRedis2, 0, 0, 1, true, cb);
             });
+        });
 
-            async.series(tasks, done);
+        describe('calls without callbacks', function() {
+            it('should work for set', function(cb) {
+                mcRedis1.set(getKey(["cached"]), "s");
+                setTimeout(cb, 100);
+            });
+            it('should cause dirty key on E2', function(cb) {
+                shouldCacheStatus(mcRedis2, 0, 0, 1, true, cb);
+            });
+            it('should work for get', function(cb) {
+                mcRedis1.get(getKey(["cached"]));
+                setTimeout(function() {
+                    shouldGet(mcRedis1, getKey(["cached"]), "s", function(err) {
+                        if (err) {
+                            return cb(err);
+                        }
+                        // Should have 2 cache hits.
+                        shouldCacheStatus(mcRedis1, 2, 0, 0, true, cb);
+                    });
+                }, 100);
+            });
+            it('should work for mset', function(cb) {
+                mcRedis2.mset(
+                    getKey(["cached"]), "t"
+                );
+                setTimeout(cb, 100);
+            });
+            it('should cause dirty key on E1', function(cb) {
+                shouldCacheStatus(mcRedis1, 0, 0, 1, true, cb);
+            });
+            it('should work for mget', function(cb) {
+                mcRedis1.mget([getKey(["cached"])]);
+                setTimeout(function() {
+                    var expected = {};
+                    expected[getKey(["cached"])] = "t";
+                    shouldMget(mcRedis1, expected, function(err) {
+                        if (err) {
+                            return cb(err);
+                        }
+                        // Should have 1 cache hit and 1 cache miss.
+                        shouldCacheStatus(mcRedis1, 1, 1, 0, true, cb);
+                    });
+                }, 100);
+            });
         });
 
         after(function(done) {

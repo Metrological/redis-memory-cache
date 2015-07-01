@@ -3,7 +3,7 @@
   "private": false,
   "name": "redis-memory-cache",
   "description": "Local memory caching proxy for redis client.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/Metrological/redis-memory-cache"
