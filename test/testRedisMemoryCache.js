@@ -294,7 +294,6 @@ describe('redis-memory-cache module', function() {
             it('should cause cache hit on E2', function(cb) {
                 shouldCacheStatus(mcRedis2, 1, 0, 0, true, cb);
             });
-            //@todo: deleting multiple at the same time.
         });
 
         describe('test mset,mget with both cached and not-cached keys', function(done) {
